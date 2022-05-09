@@ -39,10 +39,8 @@ set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 
 
 # Add header and sources here
-INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/spdm_emu/spdm_requester_emu
-                    ${PROJECT_SOURCE_DIR}/spdm_emu/spdm_responder_emu
-                    ${PROJECT_SOURCE_DIR}/spdm_emu/spdm_emu_common
-                    ${PROJECT_SOURCE_DIR}/include
+INCLUDE_DIRECTORIES(
+                    ${PROJECT_SOURCE_DIR}/include 
                     $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/libspdm/include
                     $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/libspdm/include/hal/arm 
                     $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/libspdm
@@ -81,8 +79,7 @@ target_link_libraries (
     boost_coroutine
     boost_system
 )
-find_package(Boost 1.71 REQUIRED)
-include_directories(SYSTEM ${BOOST_SRC_DIR} )
+
 if(ENABLE_BINARY_BUILD STREQUAL "1")
 target_link_libraries (
     spdm_responder
