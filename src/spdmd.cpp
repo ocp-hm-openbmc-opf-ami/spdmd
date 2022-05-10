@@ -37,14 +37,14 @@ namespace spdm
 spdmImp spdmd;
 
 /*Callback functin for libspdm */
-return_status DeviceReceiveMessage(void* spdmContext, uintn* responseSize,
+return_status deviceReceiveMessage(void* spdmContext, uintn* responseSize,
                                    void* response, uint64_t timeout)
 {
     return spdmd.deviceReceiveMessageImp(spdmContext, responseSize, response,
                                          timeout);
 }
 
-return_status DeviceSendMessage(void* spdmContext, uintn requestSize,
+return_status deviceSendMessage(void* spdmContext, uintn requestSize,
                                 const void* request, uint64_t timeout)
 {
     return spdmd.deviceSendMessageImp(spdmContext, requestSize, request,
@@ -159,6 +159,7 @@ bool spdmImp::init(std::shared_ptr<sdbusplus::asio::object_server> objServer,
     });
     return true;
 }
+
 bool spdmImp::removeDevice(const mctpw::eid_t eid)
 {
     uint8_t i;
@@ -176,6 +177,7 @@ bool spdmImp::removeDevice(const mctpw::eid_t eid)
     curIndex = curIndex - 1;
     return true;
 }
+
 bool spdmImp::addNewDevice(const mctpw::eid_t eid)
 {
     spdmItem newItem;
@@ -200,7 +202,7 @@ bool spdmImp::addNewDevice(const mctpw::eid_t eid)
     curIndex++;
     libspdm_init_context(spdmPool[newIndex].pspdmContext);
     libspdm_register_device_io_func(spdmPool[newIndex].pspdmContext,
-                                    DeviceSendMessage, DeviceReceiveMessage);
+                                    deviceSendMessage, deviceReceiveMessage);
     libspdm_register_session_state_callback_func(
         spdmPool[newIndex].pspdmContext, spdmServerSessionStateCallback);
     libspdm_register_connection_state_callback_func(
@@ -310,7 +312,9 @@ bool spdmImp::addData(mctpw::eid_t srcEid, const std::vector<uint8_t>& data)
     for (i = 0; i < curIndex; i++)
     {
         if (spdmPool[i].deviceEID == srcEid)
+        {
             break;
+        }
     }
     if (i >= curIndex)
         return false;
