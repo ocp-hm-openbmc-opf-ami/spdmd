@@ -1,12 +1,14 @@
 [Unit]
-Description=spdm Daemon
+Description=spdm responder Daemon
+Requires=xyz.openbmc_project.EntityManager.service
+After=xyz.openbmc_project.EntityManager.service
 After=xyz.openbmc_project.pmci-launcher.service
 Wants=xyz.openbmc_project.pmci-launcher.service
 StartLimitBurst=5
 
 [Service]
-ExecStart=/usr/bin/spdm_responder --trans NONE
-SyslogIdentifier=spdmd-%i
+ExecStart=/usr/bin/spdm_responder
+SyslogIdentifier=spdm_responder
 Restart=always
 RestartSec=5
 
