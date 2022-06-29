@@ -18,11 +18,10 @@ deps = [
     spdmapplib,
 ]
 
-bindir = get_option('prefix') + '/' +get_option('bindir')
 executable('spdm_responder',src_files,
             dependencies: deps,
             install: true,
-            install_dir:bindir)
+            install_dir:get_option('bindir'))
 # Install the files into the build directory
 
 systemd = dependency ('systemd')
