@@ -23,7 +23,8 @@ int main(void)
 {
 
     auto ioc = std::make_shared<boost::asio::io_context>();
-    auto trans = std::make_shared<spdmtransport::spdmTransportMCTP>(spdmtransport::TransportIdentifier::mctpOverSmBus);
+    auto trans = std::make_shared<spdmtransport::spdmTransportMCTP>(
+        spdmtransport::TransportIdentifier::mctpOverSmBus);
     auto pspdmResponder = spdmapplib::createResponder();
     pspdmResponder->initResponder(ioc, trans);
     std::cerr << "spdm_responder started." << std::endl;
