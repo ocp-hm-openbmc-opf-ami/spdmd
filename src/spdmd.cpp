@@ -29,6 +29,5 @@ int main(void)
     pspdmResponder->initResponder(ioc, trans);
     std::cerr << "spdm_responder started." << std::endl;
     ioc->run();
-    spdmapplib::deleteResponder(pspdmResponder);
     return 0;
 }
