@@ -26,8 +26,15 @@ int main(void)
     auto trans = std::make_shared<spdmtransport::spdmTransportMCTP>(
         spdmtransport::TransportIdentifier::mctpOverSmBus);
     auto pspdmResponder = spdmapplib::createResponder();
-    pspdmResponder->initResponder(ioc, trans);
-    std::cerr << "spdm_responder started." << std::endl;
-    ioc->run();
-    return 0;
+    if( pspdmResponder->initResponder(ioc, trans) )
+    {
+        std::cerr << "spdm_responder start failed." << std::endl;
+        return -1;
+    }
+    else
+    {
+        std::cerr << "spdm_responder started." << std::endl;
+        ioc->run();
+        return 0;
+    }
 }

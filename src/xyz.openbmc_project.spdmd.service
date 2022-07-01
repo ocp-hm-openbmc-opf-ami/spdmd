@@ -10,7 +10,7 @@ StartLimitBurst=5
 ExecStart=/usr/bin/spdm_responder
 SyslogIdentifier=spdm_responder
 Restart=always
-RestartSec=5
+RestartSec=15
 
 [Install]
 WantedBy=multi-user.target
