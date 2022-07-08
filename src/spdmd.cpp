@@ -19,14 +19,37 @@
 
 #include <iostream>
 
+extern spdmapplib::spdmConfiguration getConfigurationFromEntityManager(
+    std::shared_ptr<sdbusplus::asio::connection> conn,
+    const std::string& configurationName);
+
 int main(void)
 {
 
     auto ioc = std::make_shared<boost::asio::io_context>();
+    auto conn = std::make_shared<sdbusplus::asio::connection>(*ioc);
     auto trans = std::make_shared<spdmtransport::spdmTransportMCTP>(
-        spdmtransport::TransportIdentifier::mctpOverSmBus);
+        spdmtransport::TransportIdentifier::mctpOverSMBus);
     auto pspdmResponder = spdmapplib::createResponder();
-    if( pspdmResponder->initResponder(ioc, trans) )
+    spdmapplib::spdmConfiguration spdmResponderCfg;
+    do
+    {
+        spdmResponderCfg =
+            getConfigurationFromEntityManager(conn, "SPDM_responder");
+        if (spdmResponderCfg.version)
+        {
+            break;
+        }
+        else
+        {
+            std::cerr
+                << "Can't get SPDM responder configuration from EntityManager. Wait for 1 second."
+                << std::endl;
+            sleep(1);
+        }
+    } while (true);
+    std::cerr << "spdm_responder start init. " << std::endl;
+    if (pspdmResponder->initResponder(ioc, conn, trans, &spdmResponderCfg))
     {
         std::cerr << "spdm_responder start failed." << std::endl;
         return -1;

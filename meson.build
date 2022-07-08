@@ -11,11 +11,15 @@ project(
 )
 
 spdmapplib = dependency('spdmapplib')
-
-src_files = ['src/spdmd.cpp']
+libspdm = dependency('libspdm')
+libspdm_partial_dep = libspdm.partial_dependency(compile_args : true, link_args: true,
+     includes : true, links: false)
+src_files = ['src/spdmd.cpp',
+             'src/util.cpp' ]
 
 deps = [
     spdmapplib,
+    libspdm_partial_dep
 ]
 
 executable('spdm_responder',src_files,
