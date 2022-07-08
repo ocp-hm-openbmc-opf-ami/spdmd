@@ -1,5 +1,5 @@
 /**
- * Copyright © 2020 Intel Corporation
+ * Copyright © 2022 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,8 +30,11 @@ int main(void)
     auto conn = std::make_shared<sdbusplus::asio::connection>(*ioc);
     auto trans = std::make_shared<spdmtransport::spdmTransportMCTP>(
         spdmtransport::TransportIdentifier::mctpOverSMBus);
-    auto pspdmResponder = spdmapplib::createResponder();
+    auto pSpdmResponder = spdmapplib::createResponder();
     spdmapplib::spdmConfiguration spdmResponderCfg;
+    boost::asio::signal_set signals(*ioc, SIGINT, SIGTERM);
+    signals.async_wait(
+        [&ioc](const boost::system::error_code&, const int&) { ioc->stop(); });
     do
     {
         spdmResponderCfg =
@@ -49,7 +52,7 @@ int main(void)
         }
     } while (true);
     std::cerr << "spdm_responder start init. " << std::endl;
-    if (pspdmResponder->initResponder(ioc, conn, trans, &spdmResponderCfg))
+    if (pSpdmResponder->initResponder(ioc, conn, trans, &spdmResponderCfg))
     {
         std::cerr << "spdm_responder start failed." << std::endl;
         return -1;

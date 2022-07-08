@@ -1,5 +1,5 @@
 [Unit]
-Description=spdm responder Daemon
+Description=SPDM responder Daemon
 Requires=xyz.openbmc_project.EntityManager.service
 After=xyz.openbmc_project.EntityManager.service
 After=xyz.openbmc_project.pmci-launcher.service
