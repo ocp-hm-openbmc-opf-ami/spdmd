@@ -19,7 +19,7 @@
 
 #include <iostream>
 
-extern spdmapplib::spdmConfiguration getConfigurationFromEntityManager(
+extern spdmapplib::SpdmConfiguration getConfigurationFromEntityManager(
     std::shared_ptr<sdbusplus::asio::connection> conn,
     const std::string& configurationName);
 
@@ -31,7 +31,7 @@ int main(void)
     auto trans = std::make_shared<spdmtransport::spdmTransportMCTP>(
         spdmtransport::TransportIdentifier::mctpOverSMBus);
     auto pSpdmResponder = spdmapplib::createResponder();
-    spdmapplib::spdmConfiguration spdmResponderCfg;
+    spdmapplib::SpdmConfiguration spdmResponderCfg;
     boost::asio::signal_set signals(*ioc, SIGINT, SIGTERM);
     signals.async_wait(
         [&ioc](const boost::system::error_code&, const int&) { ioc->stop(); });
