@@ -25,7 +25,6 @@ extern spdmapplib::SpdmConfiguration getConfigurationFromEntityManager(
 
 int main(void)
 {
-
     auto ioc = std::make_shared<boost::asio::io_context>();
     auto conn = std::make_shared<sdbusplus::asio::connection>(*ioc);
     auto trans = std::make_shared<spdmtransport::spdmTransportMCTP>(
@@ -52,7 +51,7 @@ int main(void)
         }
     } while (true);
     std::cerr << "spdm_responder start init. " << std::endl;
-    if (pSpdmResponder->initResponder(ioc, conn, trans, &spdmResponderCfg))
+    if (pSpdmResponder->initResponder(ioc, conn, trans, spdmResponderCfg))
     {
         std::cerr << "spdm_responder start failed." << std::endl;
         return -1;
