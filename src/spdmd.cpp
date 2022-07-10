@@ -29,6 +29,7 @@
 extern spdmapplib::SpdmConfiguration getConfigurationFromEntityManager(
     std::shared_ptr<sdbusplus::asio::connection> conn,
     const std::string& configurationName);
+
 static std::shared_ptr<boost::asio::io_context> ioc =
     std::make_shared<boost::asio::io_context>();
 static std::shared_ptr<sdbusplus::asio::connection> conn =
