@@ -26,7 +26,7 @@
 #include <iostream>
 #include <unordered_set>
 
-extern spdmapplib::SpdmConfiguration getConfigurationFromEntityManager(
+extern spdmapplib::SPDMConfiguration getConfigurationFromEntityManager(
     std::shared_ptr<sdbusplus::asio::connection> conn,
     const std::string& configurationName);
 
@@ -35,9 +35,9 @@ static std::shared_ptr<boost::asio::io_context> ioc =
 static std::shared_ptr<sdbusplus::asio::connection> conn =
     std::make_shared<sdbusplus::asio::connection>(*ioc);
 static auto pSpdmResponder = spdmapplib::createResponder();
-static auto trans = std::make_shared<spdmtransport::spdmTransportMCTP>(
+static auto trans = std::make_shared<spdmtransport::SPDMTransportMCTP>(
     spdmtransport::TransportIdentifier::mctpOverSMBus);
-static spdmapplib::SpdmConfiguration spdmResponderCfg{};
+static spdmapplib::SPDMConfiguration spdmResponderCfg{};
 
 using ConfigurationField =
     std::variant<bool, uint64_t, std::string, std::vector<uint64_t>>;
