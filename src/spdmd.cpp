@@ -38,6 +38,7 @@ static auto pSpdmResponder = spdmapplib::createResponder();
 static auto trans = std::make_shared<spdmtransport::SPDMTransportMCTP>(
     spdmtransport::TransportIdentifier::mctpOverSMBus);
 static spdmapplib::SPDMConfiguration spdmResponderCfg{};
+static bool bResponderStarted = false;
 
 using ConfigurationField =
     std::variant<bool, uint64_t, std::string, std::vector<uint64_t>>;
@@ -47,37 +48,39 @@ using ConfigurationMap = std::unordered_map<std::string, ConfigurationField>;
 static const std::string spdmTypeName =
     "xyz.openbmc_project.Configuration.SPDMConfiguration";
 
+static const std::string ifcTypeName = "xyz.openbmc_project.MCTP.Binding.SMBus";
+
 static std::unordered_set<std::string> startedUnits;
+
+/**
+ * @brief get path of SPDM configuration in entitymanager
+ *
+ * @return vector of path
+ */
 
 static std::vector<std::string> getConfigurationPaths()
 {
-    auto method_call = conn->new_method_call(
+    auto methodCall = conn->new_method_call(
         "xyz.openbmc_project.ObjectMapper",
         "/xyz/openbmc_project/object_mapper",
         "xyz.openbmc_project.ObjectMapper", "GetSubTreePaths");
 
-    method_call.append("/xyz/openbmc_project/inventory/system/board", 2,
-                       std::array<std::string, 1>({spdmTypeName}));
+    methodCall.append("/xyz/openbmc_project/inventory/system/board", 2,
+                      std::array<std::string, 1>({spdmTypeName}));
 
-    auto reply = conn->call(method_call);
+    auto reply = conn->call(methodCall);
     std::vector<std::string> paths;
     reply.read(paths);
     return paths;
 }
 
-static void startSPDMResponder()
-{
-    phosphor::logging::log<phosphor::logging::level::ERR>(
-        "Staring SPDM responder!!");
-    if (pSpdmResponder->initResponder(ioc, conn, trans, spdmResponderCfg))
-    {
-        phosphor::logging::log<phosphor::logging::level::ERR>(
-            "Could not init SPDM responder!!");
-        ioc->stop();
-    }
-}
+/**
+ * @brief read SPDM configuration from entitymanager when rule matched.
+ *
+ * @param spdmConfig Assigned configuration name.
+ */
 
-static void startExistingConfigurations(std::string& spdmConfig)
+static void startReadingConfigurations(std::string& spdmConfig)
 {
     std::vector<std::string> configurationPaths;
     try
@@ -102,6 +105,12 @@ static void startExistingConfigurations(std::string& spdmConfig)
         phosphor::logging::log<phosphor::logging::level::DEBUG>(
             (std::string("Found config: ") + objectPath).c_str());
 
+        if (spdmResponderCfg.version)
+        {
+            phosphor::logging::log<phosphor::logging::level::INFO>(
+                "startReadingConfigurations, SPDM responder configuration had loaded.");
+            return;
+        }
         if (objectPath.find(spdmConfig) != objectPath.npos)
         {
             phosphor::logging::log<phosphor::logging::level::DEBUG>(
@@ -110,8 +119,31 @@ static void startExistingConfigurations(std::string& spdmConfig)
                     .c_str());
             spdmResponderCfg =
                 getConfigurationFromEntityManager(conn, spdmConfig);
-            startSPDMResponder();
+            if (spdmResponderCfg.version)
+            {
+                phosphor::logging::log<phosphor::logging::level::INFO>(
+                    "SPDM responder configuration had loaded.");
+            }
         }
+    }
+}
+
+/**
+ * @brief The SPDM responder initial function. When called will enter daemon
+ * mode.
+ *
+ */
+
+static void startSPDMResponder()
+{
+    phosphor::logging::log<phosphor::logging::level::ERR>(
+        "Staring SPDM responder!!");
+    bResponderStarted = true;
+    if (pSpdmResponder->initResponder(ioc, conn, trans, spdmResponderCfg))
+    {
+        phosphor::logging::log<phosphor::logging::level::ERR>(
+            "Could not init SPDM responder!!");
+        ioc->stop();
     }
 }
 
@@ -119,22 +151,21 @@ int main(void)
 {
     std::string responderConfigName{"SPDM_responder"};
 
-    startExistingConfigurations(responderConfigName);
+    std::vector<std::string> units;
+    startReadingConfigurations(responderConfigName);
 
     if (spdmResponderCfg.version)
     {
         phosphor::logging::log<phosphor::logging::level::INFO>(
-            "SPDM responder started.");
+            "SPDM responder configuration got!");
     }
     else
     {
         phosphor::logging::log<phosphor::logging::level::INFO>(
             "SPDM responder configuration not found!!");
     }
-    std::vector<std::string> units;
 
     namespace rules = sdbusplus::bus::match::rules;
-
     auto match = std::make_unique<sdbusplus::bus::match::match>(
         *conn,
         rules::interfacesAdded() + rules::path_namespace("/") +
@@ -159,33 +190,82 @@ int main(void)
                 return;
             }
 
-            if (startedUnits.count(unitPath) != 0)
-            {
-                return;
-            }
             for (const auto& interface : interfacesAdded)
             {
                 if (interface.first != spdmTypeName)
                 {
                     continue;
                 }
-                std::cerr << "Config found in match rule!" << std::endl;
+                phosphor::logging::log<phosphor::logging::level::INFO>(
+                    "Config found by match rule!");
                 if (spdmResponderCfg.version)
                 {
-                    std::cerr << "spdm responder had started before."
-                              << std::endl;
+                    phosphor::logging::log<phosphor::logging::level::INFO>(
+                        "SPDM responder confiruation had loaded before.");
+                }
+                else
+                {
+                    phosphor::logging::log<phosphor::logging::level::INFO>(
+                        "Reading SPDM responder configuration.");
+                    startReadingConfigurations(responderConfigName);
+                }
+            }
+        });
+
+    static const std::string matchRule =
+        "type='signal',member='InterfacesAdded',interface='org.freedesktop."
+        "DBus.ObjectManager',path='/xyz/openbmc_project/"
+        "mctp'";
+    auto mctpInterfacesAddedMatch = std::make_unique<
+        sdbusplus::bus::match::match>(
+        *conn, matchRule,
+        [&responderConfigName](sdbusplus::message::message& message) {
+            phosphor::logging::log<phosphor::logging::level::INFO>(
+                "Callback of new MCTP services match rule");
+            if (message.is_method_error())
+            {
+                phosphor::logging::log<phosphor::logging::level::ERR>(
+                    "mctpInterfacesAddedMatch Callback method error");
+                return;
+            }
+            sdbusplus::message::object_path unitPath;
+            std::unordered_map<std::string, ConfigurationMap> interfacesAdded;
+            try
+            {
+                message.read(unitPath, interfacesAdded);
+            }
+            catch (const std::exception& e)
+            {
+                phosphor::logging::log<phosphor::logging::level::ERR>(
+                    "Message read error");
+                return;
+            }
+
+            for (const auto& interface : interfacesAdded)
+            {
+                phosphor::logging::log<phosphor::logging::level::INFO>(
+                    ("interfacesAdded: " + interface.first).c_str());
+                if (interface.first != ifcTypeName)
+                {
+                    continue;
+                }
+                phosphor::logging::log<phosphor::logging::level::INFO>(
+                    ("Found matcher interface: " + interface.first).c_str());
+                if (spdmResponderCfg.version && !bResponderStarted)
+                {
+                    startSPDMResponder();
                 }
                 else
                 {
                     std::cerr << "spdm responder starting..." << std::endl;
-                    startExistingConfigurations(responderConfigName);
+                    startReadingConfigurations(responderConfigName);
                 }
             }
         });
 
     boost::asio::signal_set signals(*ioc, SIGINT, SIGTERM);
     signals.async_wait(
-        [&ioc](const boost::system::error_code&, const int&) { ioc->stop(); });
+        [&](const boost::system::error_code&, const int&) { ioc->stop(); });
 
     ioc->run();
     return 0;
