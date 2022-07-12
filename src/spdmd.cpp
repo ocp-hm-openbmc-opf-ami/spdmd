@@ -122,7 +122,7 @@ static void startReadingConfigurations(std::string& spdmConfig)
             if (spdmResponderCfg.version)
             {
                 phosphor::logging::log<phosphor::logging::level::INFO>(
-                    "SPDM responder configuration had loaded.");
+                    "SPDM responder configuration has loaded.");
             }
         }
     }
@@ -156,7 +156,7 @@ int main(void)
 
     if (spdmResponderCfg.version)
     {
-        phosphor::logging::log<phosphor::logging::level::INFO>(
+        phosphor::logging::log<phosphor::logging::level::DEBUG>(
             "SPDM responder configuration got!");
     }
     else
@@ -196,16 +196,16 @@ int main(void)
                 {
                     continue;
                 }
-                phosphor::logging::log<phosphor::logging::level::INFO>(
+                phosphor::logging::log<phosphor::logging::level::DEBUG>(
                     "Config found by match rule!");
                 if (spdmResponderCfg.version)
                 {
-                    phosphor::logging::log<phosphor::logging::level::INFO>(
-                        "SPDM responder confiruation had loaded before.");
+                    phosphor::logging::log<phosphor::logging::level::DEBUG>(
+                        "SPDM responder confiruation has loaded before.");
                 }
                 else
                 {
-                    phosphor::logging::log<phosphor::logging::level::INFO>(
+                    phosphor::logging::log<phosphor::logging::level::DEBUG>(
                         "Reading SPDM responder configuration.");
                     startReadingConfigurations(responderConfigName);
                 }
@@ -249,7 +249,7 @@ int main(void)
                 {
                     continue;
                 }
-                phosphor::logging::log<phosphor::logging::level::INFO>(
+                phosphor::logging::log<phosphor::logging::level::DEBUG>(
                     ("Found matcher interface: " + interface.first).c_str());
                 if (spdmResponderCfg.version && !bResponderStarted)
                 {
@@ -257,7 +257,6 @@ int main(void)
                 }
                 else
                 {
-                    std::cerr << "spdm responder starting..." << std::endl;
                     startReadingConfigurations(responderConfigName);
                 }
             }
