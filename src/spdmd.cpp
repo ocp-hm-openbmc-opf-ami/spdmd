@@ -26,7 +26,7 @@
 #include <iostream>
 #include <unordered_set>
 
-extern spdmapplib::SPDMConfiguration getConfigurationFromEntityManager(
+extern spdm_app_lib::SPDMConfiguration getConfigurationFromEntityManager(
     std::shared_ptr<sdbusplus::asio::connection> conn,
     const std::string& configurationName);
 
@@ -34,10 +34,9 @@ static std::shared_ptr<boost::asio::io_context> ioc =
     std::make_shared<boost::asio::io_context>();
 static std::shared_ptr<sdbusplus::asio::connection> conn =
     std::make_shared<sdbusplus::asio::connection>(*ioc);
-static auto pSpdmResponder = spdmapplib::createResponder();
-static auto trans = std::make_shared<spdmtransport::SPDMTransportMCTP>(
-    spdmtransport::TransportIdentifier::mctpOverSMBus);
-static spdmapplib::SPDMConfiguration spdmResponderCfg{};
+static auto trans = std::make_shared<spdm_transport::SPDMTransportMCTP>(
+    ioc, conn, mctpw::BindingType::mctpOverSmBus);
+static spdm_app_lib::SPDMConfiguration spdmResponderCfg{};
 static bool bResponderStarted = false;
 
 using ConfigurationField =
@@ -139,12 +138,8 @@ static void startSPDMResponder()
     phosphor::logging::log<phosphor::logging::level::ERR>(
         "Staring SPDM responder!!");
     bResponderStarted = true;
-    if (pSpdmResponder->initResponder(ioc, conn, trans, spdmResponderCfg))
-    {
-        phosphor::logging::log<phosphor::logging::level::ERR>(
-            "Could not init SPDM responder!!");
-        ioc->stop();
-    }
+    static auto spdmResponder = std::make_shared<spdm_app_lib::SPDMResponder>(
+        ioc, conn, trans, spdmResponderCfg);
 }
 
 int main(void)
