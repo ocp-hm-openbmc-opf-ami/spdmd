@@ -140,6 +140,23 @@ static void startSPDMResponder()
     bResponderStarted = true;
     static auto spdmResponder = std::make_shared<spdm_app_lib::SPDMResponder>(
         ioc, conn, trans, spdmResponderCfg);
+    trans->initDiscovery([&](spdm_transport::TransportEndPoint eidPoint,
+                             spdm_transport::Event event) {
+        if (event == spdm_transport::Event::added)
+        {
+            /*
+                Do not take any action here as a responder.
+                When Asyc messages arrive, necessary action will be taken
+                in spdmapplib
+            */
+            phosphor::logging::log<phosphor::logging::level::DEBUG>(
+                "SPDM device Added");
+        }
+        else if (event == spdm_transport::Event::removed)
+        {
+            spdmResponder->updateSPDMPool(eidPoint);
+        }
+    });
 }
 
 int main(void)
