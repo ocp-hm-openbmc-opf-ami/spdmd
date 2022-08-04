@@ -24,11 +24,11 @@ deps = [
     systemd
 ]
 
-#TODO: Uncomment after resolving library dependency
-#executable('spdm_responder',src_files,
-#            dependencies: deps,
-#            install: true,
-#            install_dir:get_option('bindir'))
+
+executable('spdm_responder',src_files,
+            dependencies: deps,
+            install: true,
+            install_dir:get_option('bindir'))
 
 systemd_system_unit_dir = systemd.get_pkgconfig_variable('systemdsystemunitdir',
                                                          define_variable: ['prefix',
