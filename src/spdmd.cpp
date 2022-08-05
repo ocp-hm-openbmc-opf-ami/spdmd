@@ -37,7 +37,9 @@ static std::shared_ptr<sdbusplus::asio::connection> conn =
 static auto trans = std::make_shared<spdm_transport::SPDMTransportMCTP>(
     ioc, conn, mctpw::BindingType::mctpOverSmBus);
 static spdm_app_lib::SPDMConfiguration spdmResponderCfg{};
+static boost::asio::steady_timer interfaceCheckTimer(*ioc);
 static bool bResponderStarted = false;
+static bool bCheckTimerStarted = false;
 
 using ConfigurationField =
     std::variant<bool, uint64_t, std::string, std::vector<uint64_t>>;
@@ -50,6 +52,44 @@ static const std::string spdmTypeName =
 static const std::string ifcTypeName = "xyz.openbmc_project.MCTP.Binding.SMBus";
 
 static std::unordered_set<std::string> startedUnits;
+/**
+ * @brief find if required dbus interface has created
+ *
+ * @return true : found, false : not found
+ */
+
+static bool
+    findRequiredMCTPInterface(std::shared_ptr<sdbusplus::asio::connection> conn,
+                              mctpw::BindingType mediaType)
+{
+    std::map<mctpw::BindingType, const std::string> supportInterfaceTable = {
+        {mctpw::BindingType::mctpOverSmBus,
+         "xyz.openbmc_project.MCTP.Binding.SMBus"},
+        {mctpw::BindingType::mctpOverPcieVdm,
+         "xyz.openbmc_project.MCTP.Binding.PCIe"},
+    };
+    auto ifcItem = supportInterfaceTable.find(mediaType);
+
+    if (ifcItem == supportInterfaceTable.end())
+    {
+        phosphor::logging::log<phosphor::logging::level::ERR>(
+            "findRequiredMCTPInterface error, not supported Type !");
+        return false;
+    }
+
+    auto methodCall = conn->new_method_call(
+        "xyz.openbmc_project.ObjectMapper",
+        "/xyz/openbmc_project/object_mapper",
+        "xyz.openbmc_project.ObjectMapper", "GetSubTreePaths");
+
+    methodCall.append("/xyz/openbmc_project", 1,
+                      std::array<std::string, 1>({ifcItem->second}));
+
+    auto reply = conn->call(methodCall);
+    std::vector<std::string> paths;
+    reply.read(paths);
+    return paths.size() > 0 ? true : false;
+}
 
 /**
  * @brief get path of SPDM configuration in entitymanager
@@ -81,6 +121,12 @@ static std::vector<std::string> getConfigurationPaths()
 
 static void startReadingConfigurations(std::string& spdmConfig)
 {
+    if (spdmResponderCfg.version)
+    {
+        phosphor::logging::log<phosphor::logging::level::INFO>(
+            "startReadingConfigurations: SPDM responder configuration has loaded.");
+        return;
+    }
     std::vector<std::string> configurationPaths;
     try
     {
@@ -104,12 +150,6 @@ static void startReadingConfigurations(std::string& spdmConfig)
         phosphor::logging::log<phosphor::logging::level::DEBUG>(
             (std::string("Found config: ") + objectPath).c_str());
 
-        if (spdmResponderCfg.version)
-        {
-            phosphor::logging::log<phosphor::logging::level::INFO>(
-                "startReadingConfigurations, SPDM responder configuration had loaded.");
-            return;
-        }
         if (objectPath.find(spdmConfig) != objectPath.npos)
         {
             phosphor::logging::log<phosphor::logging::level::DEBUG>(
@@ -121,7 +161,8 @@ static void startReadingConfigurations(std::string& spdmConfig)
             if (spdmResponderCfg.version)
             {
                 phosphor::logging::log<phosphor::logging::level::INFO>(
-                    "SPDM responder configuration has loaded.");
+                    "startReadingConfigurations: SPDM responder configuration has loaded..");
+                return;
             }
         }
     }
@@ -135,7 +176,7 @@ static void startReadingConfigurations(std::string& spdmConfig)
 
 static void startSPDMResponder()
 {
-    phosphor::logging::log<phosphor::logging::level::ERR>(
+    phosphor::logging::log<phosphor::logging::level::INFO>(
         "Staring SPDM responder!!");
     bResponderStarted = true;
     static auto spdmResponder = std::make_shared<spdm_app_lib::SPDMResponder>(
@@ -159,6 +200,41 @@ static void startSPDMResponder()
     });
 }
 
+void startResponderWorker()
+{
+    if (bCheckTimerStarted)
+    {
+        phosphor::logging::log<phosphor::logging::level::DEBUG>(
+            "startResponderWorker: SPDM Responder checkTimer started!");
+    }
+    bCheckTimerStarted = true;
+    if (bResponderStarted)
+    {
+        phosphor::logging::log<phosphor::logging::level::DEBUG>(
+            "startResponderWorker: SPDM Responder started!");
+        return;
+    }
+    phosphor::logging::log<phosphor::logging::level::DEBUG>(
+        "startResponderWorker!");
+    if (findRequiredMCTPInterface(conn, mctpw::BindingType::mctpOverSmBus))
+    { // make sure interface is ready
+        startSPDMResponder();
+    }
+    else
+    { // wait for another check.
+        constexpr std::chrono::seconds retryInterval(1);
+        interfaceCheckTimer.expires_after(retryInterval);
+        interfaceCheckTimer.async_wait(
+            [&](const boost::system::error_code& ec) {
+                if (ec == boost::asio::error::operation_aborted)
+                {
+                    return; // we're being canceled
+                }
+                startResponderWorker();
+            });
+    }
+}
+
 int main(void)
 {
     std::string responderConfigName{"SPDM_responder"};
@@ -170,10 +246,11 @@ int main(void)
     {
         phosphor::logging::log<phosphor::logging::level::DEBUG>(
             "SPDM responder configuration got!");
+        startResponderWorker();
     }
     else
     {
-        phosphor::logging::log<phosphor::logging::level::INFO>(
+        phosphor::logging::log<phosphor::logging::level::ERR>(
             "SPDM responder configuration not found!!");
     }
 
@@ -189,6 +266,10 @@ int main(void)
                     "Callback method error");
                 return;
             }
+            if (bResponderStarted)
+            {
+                return;
+            }
             sdbusplus::message::object_path unitPath;
             std::unordered_map<std::string, ConfigurationMap> interfacesAdded;
             try
@@ -204,72 +285,25 @@ int main(void)
 
             for (const auto& interface : interfacesAdded)
             {
+                if (bResponderStarted)
+                {
+                    return;
+                }
                 if (interface.first != spdmTypeName)
                 {
                     continue;
                 }
                 phosphor::logging::log<phosphor::logging::level::DEBUG>(
-                    "Config found by match rule!");
+                    "Config found by match rule! startReadingConfigurations ...");
+                startReadingConfigurations(responderConfigName);
                 if (spdmResponderCfg.version)
                 {
-                    phosphor::logging::log<phosphor::logging::level::DEBUG>(
-                        "SPDM responder confiruation has loaded before.");
-                }
-                else
-                {
-                    phosphor::logging::log<phosphor::logging::level::DEBUG>(
-                        "Reading SPDM responder configuration.");
-                    startReadingConfigurations(responderConfigName);
-                }
-            }
-        });
-
-    static const std::string matchRule =
-        "type='signal',member='InterfacesAdded',interface='org.freedesktop."
-        "DBus.ObjectManager',path='/xyz/openbmc_project/"
-        "mctp'";
-    auto mctpInterfacesAddedMatch = std::make_unique<
-        sdbusplus::bus::match::match>(
-        *conn, matchRule,
-        [&responderConfigName](sdbusplus::message::message& message) {
-            phosphor::logging::log<phosphor::logging::level::INFO>(
-                "Callback of new MCTP services match rule");
-            if (message.is_method_error())
-            {
-                phosphor::logging::log<phosphor::logging::level::ERR>(
-                    "mctpInterfacesAddedMatch Callback method error");
-                return;
-            }
-            sdbusplus::message::object_path unitPath;
-            std::unordered_map<std::string, ConfigurationMap> interfacesAdded;
-            try
-            {
-                message.read(unitPath, interfacesAdded);
-            }
-            catch (const std::exception& e)
-            {
-                phosphor::logging::log<phosphor::logging::level::ERR>(
-                    "Message read error");
-                return;
-            }
-
-            for (const auto& interface : interfacesAdded)
-            {
-                phosphor::logging::log<phosphor::logging::level::INFO>(
-                    ("interfacesAdded: " + interface.first).c_str());
-                if (interface.first != ifcTypeName)
-                {
-                    continue;
-                }
-                phosphor::logging::log<phosphor::logging::level::DEBUG>(
-                    ("Found matcher interface: " + interface.first).c_str());
-                if (spdmResponderCfg.version && !bResponderStarted)
-                {
-                    startSPDMResponder();
-                }
-                else
-                {
-                    startReadingConfigurations(responderConfigName);
+                    if (bCheckTimerStarted == false)
+                    {
+                        phosphor::logging::log<phosphor::logging::level::DEBUG>(
+                            "Execute startResponderWorker() in match rule.");
+                        startResponderWorker();
+                    }
                 }
             }
         });
