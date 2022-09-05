@@ -1,5 +1,5 @@
 project(
-    'spdm_responder',
+    'spdmd',
     'cpp',
     license: 'Apache-2.0',
     version: '0.1',
@@ -9,12 +9,40 @@ project(
         'cpp_std=c++17'
     ],
 )
-
+yocto_build = get_option('yocto_dep')
 spdmapplib = dependency('spdmapplib')
 libspdm = dependency('libspdm')
 libspdm_partial_dep = libspdm.partial_dependency(compile_args : true, link_args: true,
      includes : true, links: false)
 systemd = dependency ('systemd')
+
+packagedir = join_paths(
+    get_option('prefix'),
+    get_option('datadir'),
+    meson.project_name(),
+)
+
+threads = dependency('threads')
+
+cmake = import('cmake')
+
+certificates = [
+    'bundle_responder.certchain.der',
+    'ca.cert.der',
+    'end_responder.key'
+]
+filepaths = []
+foreach c : certificates
+    file = join_paths('sample_keys/ecp384', c)
+    install_data(
+        file,
+        install_dir: join_paths(
+            packagedir,
+            'sample_keys/ecp384',
+        )
+    )
+    filepaths += [file]
+endforeach
 src_files = ['src/spdmd.cpp',
              'src/util.cpp' ]
 
@@ -23,7 +51,6 @@ deps = [
     libspdm_partial_dep,
     systemd
 ]
-
 
 executable('spdm_responder',src_files,
             dependencies: deps,

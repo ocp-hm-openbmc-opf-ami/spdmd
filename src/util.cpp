@@ -332,7 +332,7 @@ spdm_app_lib::SPDMConfiguration getConfigurationFromEntityManager(
     }
     else
     {
-        spdmConfig.certPath = "/usr/bin";
+        spdmConfig.certPath = "/usr/share/spdmd/sample_keys";
     }
 
     // get capability
