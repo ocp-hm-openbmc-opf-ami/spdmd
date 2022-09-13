@@ -62,7 +62,7 @@ systemd_system_unit_dir = systemd.get_pkgconfig_variable('systemdsystemunitdir',
                                                                            get_option('prefix')
                                                                           ])
 # Install the service file into the system unit directory
-configure_file(input : 'src/xyz.openbmc_project.spdmd.service',
+configure_file(input : 'service_files/xyz.openbmc_project.spdmd.service',
                output : 'xyz.openbmc_project.spdmd.service',
                copy : true,
                install_dir : systemd_system_unit_dir)
