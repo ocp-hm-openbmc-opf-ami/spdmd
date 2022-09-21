@@ -11,9 +11,6 @@ project(
 )
 yocto_build = get_option('yocto_dep')
 spdmapplib = dependency('spdmapplib')
-libspdm = dependency('libspdm')
-libspdm_partial_dep = libspdm.partial_dependency(compile_args : true, link_args: true,
-     includes : true, links: false)
 systemd = dependency ('systemd')
 
 packagedir = join_paths(
@@ -48,7 +45,6 @@ src_files = ['src/spdmd.cpp',
 
 deps = [
     spdmapplib,
-    libspdm_partial_dep,
     systemd
 ]
 
