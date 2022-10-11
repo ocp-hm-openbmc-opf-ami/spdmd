@@ -257,8 +257,8 @@ int main(void)
     namespace rules = sdbusplus::bus::match::rules;
     auto match = std::make_unique<sdbusplus::bus::match::match>(
         *conn,
-        rules::interfacesAdded() + rules::path_namespace("/") +
-            rules::sender("xyz.openbmc_project.EntityManager"),
+        "type='signal',member='InterfacesAdded',sender='" +
+            std::string("xyz.openbmc_project.EntityManager") + "'",
         [&units, &responderConfigName](sdbusplus::message::message& message) {
             if (message.is_method_error())
             {
