@@ -25,6 +25,7 @@ cmake = import('cmake')
 
 certificates = [
     'bundle_responder.certchain.der',
+    'bundle_responder.certchain1.der',
     'ca.cert.der',
     'end_responder.key'
 ]
