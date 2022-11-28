@@ -1,7 +1,7 @@
 project(
     'spdmd',
     'cpp',
-    license: 'Apache-2.0',
+    license: 'proprietary',
     version: '0.1',
     default_options: [
         'warning_level=3',
