@@ -269,11 +269,11 @@ int main(void)
             {
                 return;
             }
-            sdbusplus::message::object_path unitPath;
+            sdbusplus::message::object_path objPath;
             std::unordered_map<std::string, ConfigurationMap> interfacesAdded;
             try
             {
-                message.read(unitPath, interfacesAdded);
+                message.read(objPath, interfacesAdded);
             }
             catch (const std::exception& e)
             {
@@ -282,16 +282,29 @@ int main(void)
                 return;
             }
 
+            /**
+             * Check if the objPath added was for SPDM_responder configuration
+             */
+            if (objPath.str.find(
+                    "/xyz/openbmc_project/inventory/system/board/") ==
+                    std::string::npos ||
+                objPath.str.find("/SPDM_responder") == std::string::npos)
+            {
+                return;
+            }
+
+            bool foundInterface = false;
             for (const auto& interface : interfacesAdded)
             {
-                if (bResponderStarted)
+                if (interface.first == spdmTypeName)
                 {
-                    return;
+                    foundInterface = true;
+                    break;
                 }
-                if (interface.first != spdmTypeName)
-                {
-                    continue;
-                }
+            }
+
+            if (foundInterface)
+            {
                 phosphor::logging::log<phosphor::logging::level::DEBUG>(
                     "Config found by match rule! startReadingConfigurations ...");
                 startReadingConfigurations(responderConfigName);
