@@ -238,6 +238,19 @@ int main(void)
 {
     std::string responderConfigName{"SPDM_responder"};
 
+    spdmResponderCfg.version = 0x10;
+    spdmResponderCfg.certPath = "/usr/bin";
+    spdmResponderCfg.capability = 0x001afbf7;
+    spdmResponderCfg.hash = 0x00000002;
+    spdmResponderCfg.asym = 0x00000090;
+    spdmResponderCfg.measHash = 0x00000008;
+    spdmResponderCfg.reqasym = 0x0000000f;
+    spdmResponderCfg.dhe = 0x0000001b;
+    spdmResponderCfg.aead = 0x00000006;
+    spdmResponderCfg.slotcount = 0x3;
+
+    phosphor::logging::log<phosphor::logging::level::INFO>("Use DEBUG config.");
+
     std::vector<std::string> units;
     startReadingConfigurations(responderConfigName);
 
