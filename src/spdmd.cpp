@@ -239,7 +239,7 @@ int main(void)
     std::string responderConfigName{"SPDM_responder"};
 
     spdmResponderCfg.version = 0x10;
-    spdmResponderCfg.certPath = "/usr/bin";
+    spdmResponderCfg.certPath = "/usr/share/spdmd/sample_keys";
     spdmResponderCfg.capability = 0x001afbf7;
     spdmResponderCfg.hash = 0x00000002;
     spdmResponderCfg.asym = 0x00000090;
