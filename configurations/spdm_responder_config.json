@@ -1,0 +1,48 @@
+{
+    "Version": [
+        "1.0",
+        "1.1",
+        "1.2"
+    ],
+    "SecureVersion": [
+        "1.0",
+        "1.1"
+    ],
+    "CertPath": "/usr/share/spdmd/sample_keys",
+    "Capability": [
+        "CACHE",
+        "CERT",
+        "CHAL",
+        "MEAS_SIG",
+        "MEAS_FRESH",
+        "KEY_EX",
+        "ENCRYPT",
+        "MUT_AUTH",
+        "KEY_UPD"
+    ],
+    "Hash": [
+        "SHA_384"
+    ],
+    "MeasSpec": "DMTF",
+    "MeasHash": [
+        "SHA_384"
+    ],
+    "Asym": [
+        "ECDSA_P384"
+    ],
+    "ReqAsym": [
+        "ECDSA_P384"
+    ],
+    "Dhe": [
+        "SECP_384_R1",
+        "FFDHE_3072"
+    ],
+    "Aead": [
+        "AES_256_GCM"
+    ],
+    "BasicMutAuth": "BASIC",
+    "MutAuth": "W_ENCAP",
+    "MeasAttribute": "HASH",
+    "SlotCount": 3
+}
+

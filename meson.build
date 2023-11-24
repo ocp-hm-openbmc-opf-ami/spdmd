@@ -13,6 +13,11 @@ yocto_build = get_option('yocto_dep')
 spdmapplib = dependency('spdmapplib')
 systemd = dependency ('systemd')
 
+nlohmann_json = dependency(
+    'nlohmann_json',
+    fallback : ['nlohmann_json', 'nlohmann_json_dep'], 
+    required : true,
+    )
 packagedir = join_paths(
     get_option('prefix'),
     get_option('datadir'),
@@ -42,9 +47,25 @@ foreach c : certificates
     filepaths += [file]
 endforeach
 src_files = ['src/spdmd.cpp',
-             'src/util.cpp' ]
+             'src/spdm_config_reader.cpp' ]
+
+#Install configs
+configurations = [
+    'spdm_responder_config.json'
+]
+
+foreach c : configurations
+    install_data(
+        join_paths('configurations', c),
+        install_dir: join_paths(
+            packagedir,
+            'configurations',
+        )
+    )
+endforeach
 
 deps = [
+    nlohmann_json,
     spdmapplib,
     systemd
 ]
