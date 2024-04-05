@@ -1,12 +1,6 @@
 {
     "Version": [
-        "1.0",
-        "1.1",
-        "1.2"
-    ],
-    "SecureVersion": [
-        "1.0",
-        "1.1"
+        "1.0"
     ],
     "CertPath": "/usr/share/spdmd/sample_keys",
     "Capability": [
@@ -14,11 +8,7 @@
         "CERT",
         "CHAL",
         "MEAS_SIG",
-        "MEAS_FRESH",
-        "KEY_EX",
-        "ENCRYPT",
-        "MUT_AUTH",
-        "KEY_UPD"
+        "MEAS_FRESH"
     ],
     "Hash": [
         "SHA_384"

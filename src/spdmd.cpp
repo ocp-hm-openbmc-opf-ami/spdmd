@@ -44,7 +44,7 @@ int main(void)
                 .c_str());
     }
     auto trans = std::make_shared<spdm_transport::SPDMTransportMCTP>(
-        ioc, conn, mctpw::BindingType::mctpOverSmBus);
+        ioc, conn, mctpw::BindingType::mctpOverSmBus, true);
     auto spdmResponder = std::make_shared<spdm_app_lib::SPDMResponder>(
         ioc, conn, trans, spdmConfig);
     trans->initDiscovery([&](spdm_transport::TransportEndPoint eidPoint,
